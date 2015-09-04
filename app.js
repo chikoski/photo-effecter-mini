@@ -69,7 +69,7 @@ function pickPhoto(){
 }
 
 var storage = (function(){
-  var sotrage = navigator.getDeviceStorage("image");
+  var storage = navigator.getDeviceStorage("pictures");
   if(storage != null){
     storage.createFileName = function(){
       var now = new Date();
@@ -80,8 +80,9 @@ var storage = (function(){
         ("00" + now.getMinutes()).substr(-2) + ".jpg";
     };
     storage.savePhoto = function(blob){
+      var self = this;
       return new Promise(function(resolve, reject){
-        var req = this.addNamed(blob, this.createFileName());
+        var req = self.addNamed(blob, self.createFileName());
         req.onsuccess = function(){
           resolve(this.result);
         }
@@ -91,7 +92,7 @@ var storage = (function(){
       });
     };
   }
-  return storage;
+  return storage;;
 })();
 
 var Effecter = function(){
@@ -154,6 +155,16 @@ Effecter.prototype = {
     this._scale = value;
     this.updatePreview();
   },
+  toBlob: function(){
+    var self = this;
+    return new Promise(function(resolve, reject){
+      if(self.photo != null){
+        self.el.toBlob(resolve, "image/jpeg");
+      }else{
+        reject("No photo is given");
+      }
+    });
+  },
   updatePreview: function(){
     if(this.photo != null){
       var source = this.sourceArea;
@@ -176,7 +187,6 @@ Effecter.prototype = {
 window.addEventListener("load", function(){
   var app = new StateMachine();
   app.route = function(hash){
-    console.log(hash);
     if(hash.charAt(0) == "#"){
       hash = hash.substr(1, hash.length - 1);
     }
@@ -192,13 +202,29 @@ window.addEventListener("load", function(){
   });
 
   app.addEventListener("save-photo", function(){
-
+    if(storage){
+      effecter.toBlob().then(function(blob){
+        return storage.savePhoto(blob);
+      }).then(function(filename){
+        new Notification("Photo Effecter Mini", {
+                          body: filename + " に保存しました。",
+                          icon: "/icons/icon16x16.png"
+                        });
+      }, function(error){
+        console.log(error);
+      });
+    }
   });
 
   document.querySelector("[data-role=pick-photo]").addEventListener("click", function(event){
     event.preventDefault();
     app.state = "pick-photo";
   });
+  document.querySelector("[data-role=save-photo]").addEventListener("click", function(event){
+    event.preventDefault();
+    app.state = "save-photo";
+  });
+
   window.location.watch("hash", function(prop, oldValue, newValue){
     app.route(newValue);
   });

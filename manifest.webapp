@@ -14,9 +14,12 @@
   },
   "type": "privileged",
   "permissions": {
-    "device-storage:photo": {
+    "device-storage:pictures": {
       "access": "readwrite",
-      "description": "録音データの保存ため"
+      "description": "写真データの保存のため"
+    },
+    "desktop-notification": {
+      "description": "保存できたかどうかを通知するため"
     }
   }
 }
