@@ -68,21 +68,137 @@ function pickPhoto(){
   });
 }
 
+var storage = (function(){
+  var sotrage = navigator.getDeviceStorage("image");
+  if(storage != null){
+    storage.createFileName = function(){
+      var now = new Date();
+      return "photo-" + (1900 + now.getYear()) + "-" +
+        ("00" + (now.getMonth() + 1)).substr(-2) +
+        ("00" + now.getDate()).substr(-2) + "-" +
+        ("00" + now.getHours()).substr(-2) +
+        ("00" + now.getMinutes()).substr(-2) + ".jpg";
+    };
+    storage.savePhoto = function(blob){
+      return new Promise(function(resolve, reject){
+        var req = this.addNamed(blob, this.createFileName());
+        req.onsuccess = function(){
+          resolve(this.result);
+        }
+        req.onerror = function(){
+          reject(this.error);
+        }
+      });
+    };
+  }
+  return storage;
+})();
+
+var Effecter = function(){
+  this.initialize.apply(this, arguments);
+}
+
+Effecter.prototype = {
+  initialize: function(canvas, width, height){
+    this.el = canvas;
+    this.ctx = canvas.getContext("2d");
+    this.width = width;
+    this.height =  height;
+    this.reset();
+  },
+  get width(){
+    return this.el.width;
+  },
+  set width(value){
+    this.el.width = value;
+  },
+  get height(){
+    return this.el.height;
+  },
+  set height(value){
+    this.el.height = value;
+  },
+  get photo(){
+    return this._photo;
+  },
+  set photo(value){
+    this._photo = value;
+    this.updatePreview();
+  },
+  get scale(){
+    return this._scale;
+  },
+  get sourceWidth(){
+    var w = this.width * this.scale;
+    if(this.photo != null && this.offsetX + w > this.photo.width){
+      w = this.photo.width - this.offsetX;
+    }
+    return w;
+  },
+  get sourceHeight(){
+    var h = this.height * this.scale;
+    if(this.photo != null && this.offsetY + h > this.photo.height){
+      h = this.photo.height - this.offsetY;
+    }
+    return h;
+  },
+  get sourceArea(){
+    return {
+      x: this.offsetX,
+      y: this.offsetY,
+      width: this.sourceWidth,
+      height: this.sourceHeight
+    }
+  },
+  set scale(value){
+    this._scale = value;
+    this.updatePreview();
+  },
+  updatePreview: function(){
+    if(this.photo != null){
+      var source = this.sourceArea;
+      this.ctx.fillStyle = "white";
+      this.ctx.fillRect(0, 0, this.width, this.height);
+      this.ctx.drawImage(this.photo,
+                         source.x, source.y,
+                         source.width, source.height,
+                         0, 0,
+                         this.width, this.height);
+    }
+  },
+  reset: function(){
+    this.scale = 1;
+    this.offsetX = 0;
+    this.offsetY = 0;
+  }
+};
+
 window.addEventListener("load", function(){
   var app = new StateMachine();
   app.route = function(hash){
+    console.log(hash);
     if(hash.charAt(0) == "#"){
       hash = hash.substr(1, hash.length - 1);
     }
     this.state = hash;
   };
+  var effecter = new Effecter(document.querySelector("canvas"),
+                              1024, 1024);
 
   app.addEventListener("pick-photo", function(){
     pickPhoto().then(function(photo){
-      console.log(photo);
+      effecter.photo = photo;
     });
   });
 
+  app.addEventListener("save-photo", function(){
+
+  });
+
+  document.querySelector("[data-role=pick-photo]").addEventListener("click", function(event){
+    event.preventDefault();
+    app.state = "pick-photo";
+  });
   window.location.watch("hash", function(prop, oldValue, newValue){
     app.route(newValue);
   });

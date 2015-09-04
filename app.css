@@ -3,3 +3,7 @@ body{
   padding: 0;
   font-size: 18pt;
 }
+canvas{
+  width: 100%;
+  height: auto;
+}
