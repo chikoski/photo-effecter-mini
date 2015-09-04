@@ -186,7 +186,7 @@ Effecter.prototype = {
       if(this.photo.width > this.photo.height){
         this.scale = this.photo.height / this.height;
       }else{
-        this.scale = this.phoot.width / this.width;
+        this.scale = this.photo.width / this.width;
       }
     }
   },
