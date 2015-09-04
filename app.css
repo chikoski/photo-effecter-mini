@@ -1,9 +1,53 @@
 body{
-  marign: 0;
+  margin: 0;
   padding: 0;
-  font-size: 18pt;
+  font-size: 18px;
 }
 canvas{
   width: 100%;
   height: auto;
+}
+.view{
+  position: relative;
+  padding: 0;
+}
+.view header{
+  background-color: #ccc;
+  box-shadow: 1px 1px 3px #333;
+  padding: 0.5rem;
+}
+.view header h1{
+  color: #333;
+  font-size: 1rem;
+  margin: 0;
+}
+
+.view nav ul{
+  display: flex;
+  padding: 1rem;
+  margin:0;
+}
+.view nav ul > li{
+  list-style: none;
+  flex-grow: 1;
+} 
+footer{
+  display: flex;
+}
+footer a{
+  display: block;
+  margin: 0 .1rem;
+  padding: .5rem;
+  flex-grow: 1;
+  text-align: center;
+  text-decoration: none;
+  color: #333;
+  background-color: #ccc;
+  border-radius: 3px;
+}
+footer a:active{
+  box-shadow: inset 1px 1px 3px #333;
+}
+footer a:hover{
+  box-shadow: inset 1px 1px 3px #999;
 }
