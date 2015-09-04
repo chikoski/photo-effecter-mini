@@ -95,6 +95,14 @@ var storage = (function(){
   return storage;;
 })();
 
+var Point = function(x, y){
+  this.x = x;
+  this.y = y;
+}
+Point.createFromTouch = function(touch){
+  return new Point(touch.clientX, touch.clientY);
+};
+
 var Effecter = function(){
   this.initialize.apply(this, arguments);
 }
@@ -106,6 +114,27 @@ Effecter.prototype = {
     this.width = width;
     this.height =  height;
     this.reset();
+
+    var self = this;
+    (function(){
+      var previousTouch = null;
+      canvas.addEventListener("touchstart", function(event){
+        if(event.touches.length == 1){
+          previousTouch = Point.createFromTouch(event.touches[0]);
+        }
+      });
+      canvas.addEventListener("touchmove", function(event){
+        if(event.touches.length == 1){
+          var nextTouch = Point.createFromTouch(event.touches[0]);
+          self.offsetX += (previousTouch.x - nextTouch.x) * 2;
+          self.offsetY += (previousTouch.y - nextTouch.y) * 2;
+          previousTouch = nextTouch;
+        }
+      });
+      canvas.addEventListener("touchend", function(event){
+        previousTouch = null;
+      });
+    })();
   },
   get width(){
     return this.el.width;
@@ -118,6 +147,30 @@ Effecter.prototype = {
   },
   set height(value){
     this.el.height = value;
+  },
+  get offsetX(){
+    return this._offsetX;
+  },
+  set offsetX(value){
+    var area =this.sourceArea;
+    if(this.photo == null){
+      this._offsetX = value;
+    }else{
+      this._offsetX = Math.min(this.photo.width - area.width, Math.max(0, value));
+      this.updatePreview();
+    }
+  },
+  get offsetY(){
+    return this._offsetY;
+  },
+  set offsetY(value){
+    var area = this.sourceArea;
+    if(this.photo == null){
+      this._offsetY = value;
+    }else{
+      this._offsetY = Math.min(this.photo.height - area.height, Math.max(0, value));
+      this.updatePreview();
+    }
   },
   get photo(){
     return this._photo;
@@ -188,6 +241,7 @@ Effecter.prototype = {
       }else{
         this.scale = this.photo.width / this.width;
       }
+      this.minimumScale = this.scale;
     }
   },
   reset: function(){
@@ -196,7 +250,7 @@ Effecter.prototype = {
     this.offsetY = 0;
   }
 };
-
+var effecter;
 window.addEventListener("load", function(){
   var app = new StateMachine();
   app.route = function(hash){
@@ -205,7 +259,8 @@ window.addEventListener("load", function(){
     }
     this.state = hash;
   };
-  var effecter = new Effecter(document.querySelector("canvas"),
+  var canvas = document.querySelector("canvas");
+  effecter = new Effecter(canvas,
                               1024, 1024);
 
   app.addEventListener("pick-photo", function(){
@@ -228,6 +283,7 @@ window.addEventListener("load", function(){
       });
     }
   });
+
 
   document.querySelector("[data-role=pick-photo]").addEventListener("click", function(event){
     event.preventDefault();
