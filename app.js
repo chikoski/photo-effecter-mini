@@ -124,6 +124,7 @@ Effecter.prototype = {
   },
   set photo(value){
     this._photo = value;
+    this.updateScaleByPhotoSize();
     this.updatePreview();
   },
   get scale(){
@@ -144,11 +145,14 @@ Effecter.prototype = {
     return h;
   },
   get sourceArea(){
+    var value = Math.min(this.sourceWidth,
+                         this.sourceHeight);
     return {
       x: this.offsetX,
       y: this.offsetY,
-      width: this.sourceWidth,
-      height: this.sourceHeight
+      width: value,
+      height: value,
+      scale: this.scale
     }
   },
   set scale(value){
@@ -175,6 +179,15 @@ Effecter.prototype = {
                          source.width, source.height,
                          0, 0,
                          this.width, this.height);
+    }
+  },
+  updateScaleByPhotoSize: function(){
+    if(this.photo != null){
+      if(this.photo.width > this.photo.height){
+        this.scale = this.photo.height / this.height;
+      }else{
+        this.scale = this.phoot.width / this.width;
+      }
     }
   },
   reset: function(){
