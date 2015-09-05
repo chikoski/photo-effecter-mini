@@ -159,7 +159,7 @@ GraphicBuffer.prototype = {
   },
   apply: function(filter){
     if(typeof filter == "function"){
-      return filter.call(this.ctx);
+      return filter.call(null, this);
     }
     return null;
   },
@@ -303,9 +303,9 @@ Effecter.prototype = {
   },
   apply: function(filter){
     if(this.photo != null && typeof filter == "function" && !this.history.contains(filter)){
-      var data = filter(this.ctx.getImageData(0, 0, this.width, this.height));
-      this.ctx.putImageData(data, 0, 0);
+      this._background.apply(filter);
       this.history.add(filter);
+      this.updatePreview();
     }
   },
   createBuffer: function(){
@@ -349,7 +349,8 @@ function average(data){
   return sum / data.length;
 }
 
-function grayscale(src){
+function grayscale(buffer){
+  var src = buffer.getImageData(0, 0, buffer.width, buffer.height);
   for(var i = 0; i < src.data.length; i = i + 4){
     var value = average([src.data[i], src.data[i + 1], src.data[i + 2]]);
 
@@ -358,10 +359,11 @@ function grayscale(src){
     src.data[i + 2] = value;
     src.data[i + 3] = src.data[i + 3];
   }
-  return src;
+  buffer.putImageData(src, 0, 0);
+  return buffer;
 }
 
-function mosaic(ctx, width, height){
+function mosaic(buffer){
   var size = 32;
   for(var x = 0; x < width; x += size){
     for(var y = 0; y < height; y += size){
