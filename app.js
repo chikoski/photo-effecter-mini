@@ -365,10 +365,24 @@ function grayscale(buffer){
 }
 
 function mosaic(buffer){
-  var size = 32;
-  for(var x = 0; x < width; x += size){
-    for(var y = 0; y < height; y += size){
-      var data = ctx.getImageData(x, y, size, size);
+  var size = 64;
+  var pixels = size * size;
+  for(var x = 0; x < buffer.width; x += size){
+    for(var y = 0; y < buffer.height; y += size){
+      var src = buffer.getImageData(x, y, size, size);
+      var r = 0;
+      var g = 0;
+      var b = 0;
+      for(var i = 0; i < src.data.length; i = i + 4){
+        r += src.data[i];
+        g += src.data[i + 1];
+        b += src.data[i + 2];
+      }
+      var rgb = [Math.floor(r / pixels),
+                 Math.floor(g / pixels),
+                 Math.floor(b / pixels)];
+      buffer.ctx.fillStyle = "rgb(" + rgb.join(",") + ")";
+      buffer.ctx.fillRect(x, y, size, size);
     }
   }
 };
