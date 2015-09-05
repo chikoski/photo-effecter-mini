@@ -103,37 +103,6 @@ Point.createFromTouch = function(touch){
   return new Point(touch.clientX, touch.clientY);
 };
 
-var History = function(){
-  this.initialize.apply(this, arguments);
-}
-History.prototype = {
-  initialize: function(){
-    this._list = [];
-  },
-  empty: function(){
-    this._list = [];
-  },
-  add: function(func){
-    if(typeof func == "function"){
-      this._list.push(func);
-    }
-  },
-  contains: function(func){
-    return this._list.indexOf(func) > -1;
-  },
-  remove: function(func){
-    var index = this._list.indexOf(func);
-    if(index > -1){
-      this._list.splice(index, 1);
-    }
-  },
-  apply: function(src){
-    this._list.forEach(function(func){
-      func.call(src);
-    });
-  }
-};
-
 var GraphicBuffer = function(){
   this.initialize.apply(this, arguments);
 }
@@ -187,7 +156,6 @@ Effecter.prototype = {
     this.height =  height;
     this._foreground = new GraphicBuffer(this.el);
     this._background = null;
-    this._history = new History();
 
     var self = this;
     (function(){
@@ -221,9 +189,6 @@ Effecter.prototype = {
   },
   set height(value){
     this.el.height = value;
-  },
-  get history(){
-    return this._history;
   },
   get offsetX(){
     return this._offsetX;
@@ -303,9 +268,8 @@ Effecter.prototype = {
     });
   },
   apply: function(filter){
-    if(this.photo != null && typeof filter == "function" && !this.history.contains(filter)){
+    if(this.photo != null && typeof filter == "function"){
       this._background.apply(filter);
-      this.history.add(filter);
       this.updatePreview();
     }
   },
@@ -338,7 +302,6 @@ Effecter.prototype = {
     this._scale = 1;
     this._offsetX = 0;
     this._offsetY = 0;
-    this.history.empty();
   }
 };
 
