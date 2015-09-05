@@ -233,7 +233,9 @@ Effecter.prototype = {
     if(this.photo == null){
       this._offsetX = value;
     }else{
-      this._offsetX = Math.min(this.photo.width - area.width, Math.max(0, value));
+      value = Math.max(0, Math.min(this._background.width - this.width, value));
+      console.log(value);
+      this._offsetX = value;
       this.updatePreview();
     }
   },
@@ -241,11 +243,10 @@ Effecter.prototype = {
     return this._offsetY;
   },
   set offsetY(value){
-    var area = this.sourceArea;
     if(this.photo == null){
       this._offsetY = value;
     }else{
-      this._offsetY = Math.min(this.photo.height - area.height, Math.max(0, value));
+      this._offsetY = Math.max(0, Math.min(this._background.height - this.height, value));
       this.updatePreview();
     }
   },
@@ -253,8 +254,8 @@ Effecter.prototype = {
     return this._photo;
   },
   set photo(value){
-    this._photo = value;
     this.reset();
+    this._photo = value;
     this.updateScaleByPhotoSize();
     this.createBuffer();
     this.updatePreview();
@@ -334,9 +335,9 @@ Effecter.prototype = {
     }
   },
   reset: function(){
-    this.scale = 1;
-    this.offsetX = 0;
-    this.offsetY = 0;
+    this._scale = 1;
+    this._offsetX = 0;
+    this._offsetY = 0;
     this.history.empty();
   }
 };
@@ -372,6 +373,8 @@ function mosaic(buffer){
   }
 };
 
+var effecter;
+
 window.addEventListener("load", function(){
   var app = new StateMachine();
   app.route = function(hash){
@@ -381,7 +384,7 @@ window.addEventListener("load", function(){
     this.state = hash;
   };
   var canvas = document.querySelector("canvas");
-  var effecter = new Effecter(canvas,
+  effecter = new Effecter(canvas,
                               1024, 1024);
 
   app.addEventListener("pick-photo", function(){
