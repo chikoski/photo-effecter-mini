@@ -134,6 +134,47 @@ History.prototype = {
   }
 };
 
+var GraphicBuffer = function(){
+  this.initialize.apply(this, arguments);
+}
+GraphicBuffer.prototype = {
+  initialize: function(){
+    if(arguments.length == 2){
+      this._canvas = document.createElement("canvas");
+      this._canvas.width = arguments[0];
+      this._canvas.height = arguments[1];
+    }else{
+      this._canvas = arguments[0];
+    }
+    this._ctx = this._canvas.getContext("2d");
+  },
+  get ctx(){
+    return this._ctx;
+  },
+  get width(){
+    return this._canvas.width;
+  },
+  get height(){
+    return this._canvas.height;
+  },
+  apply: function(filter){
+    if(typeof filter == "function"){
+      return filter.call(this.ctx);
+    }
+    return null;
+  },
+  clear: function(color){
+    this.ctx.fillStyle = color || "white";
+    this.ctx.fillRect(0, 0, this.width, this.height);
+  },
+  getImageData: function(x, y, width, height){
+    return this.ctx.getImageData(x, y, width, height);
+  },
+  putImageData: function(imageData, x, y){
+    this.ctx.putImageData(imageData, x, y);
+  }
+};
+
 var Effecter = function(){
   this.initialize.apply(this, arguments);
 }
@@ -144,6 +185,8 @@ Effecter.prototype = {
     this.ctx = canvas.getContext("2d");
     this.width = width;
     this.height =  height;
+    this._foreground = new GraphicBuffer(this.el);
+    this._background = null;
     this._history = new History();
 
     var self = this;
@@ -213,20 +256,21 @@ Effecter.prototype = {
     this._photo = value;
     this.reset();
     this.updateScaleByPhotoSize();
+    this.createBuffer();
     this.updatePreview();
   },
   get scale(){
     return this._scale;
   },
   get sourceWidth(){
-    var w = this.width * this.scale;
+    var w = Math.floor(this.width * this.scale);
     if(this.photo != null && this.offsetX + w > this.photo.width){
       w = this.photo.width - this.offsetX;
     }
     return w;
   },
   get sourceHeight(){
-    var h = this.height * this.scale;
+    var h = Math.floor(this.height * this.scale);
     if(this.photo != null && this.offsetY + h > this.photo.height){
       h = this.photo.height - this.offsetY;
     }
@@ -264,16 +308,19 @@ Effecter.prototype = {
       this.history.add(filter);
     }
   },
+  createBuffer: function(){
+    var width = Math.floor(this.photo.width / this.scale);
+    var height = Math.floor(this.photo.height / this.scale);
+    this._background = new GraphicBuffer(width, height);
+    this._background.ctx.drawImage(this.photo,
+                                   0, 0,
+                                   this._background.width, this._background.height);
+  },
   updatePreview: function(){
-    if(this.photo != null){
-      var source = this.sourceArea;
-      this.ctx.fillStyle = "white";
-      this.ctx.fillRect(0, 0, this.width, this.height);
-      this.ctx.drawImage(this.photo,
-                         source.x, source.y,
-                         source.width, source.height,
-                         0, 0,
-                         this.width, this.height);
+    if(this._background != null){
+      this._foreground.clear();
+      var data = this._background.getImageData(this.offsetX, this.offsetY, this.width, this.height);
+      this._foreground.putImageData(data, 0, 0);
     }
   },
   updateScaleByPhotoSize: function(){
