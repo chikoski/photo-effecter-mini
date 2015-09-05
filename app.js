@@ -103,6 +103,37 @@ Point.createFromTouch = function(touch){
   return new Point(touch.clientX, touch.clientY);
 };
 
+var History = function(){
+  this.initialize.apply(this, arguments);
+}
+History.prototype = {
+  initialize: function(){
+    this._list = [];
+  },
+  empty: function(){
+    this._list = [];
+  },
+  add: function(func){
+    if(typeof func == "function"){
+      this._list.push(func);
+    }
+  },
+  contains: function(func){
+    return this._list.indexOf(func) > -1;
+  },
+  remove: function(func){
+    var index = this._list.indexOf(func);
+    if(index > -1){
+      this._list.splice(index, 1);
+    }
+  },
+  apply: function(src){
+    this._list.forEach(function(func){
+      func.call(src);
+    });
+  }
+};
+
 var Effecter = function(){
   this.initialize.apply(this, arguments);
 }
@@ -113,7 +144,7 @@ Effecter.prototype = {
     this.ctx = canvas.getContext("2d");
     this.width = width;
     this.height =  height;
-    this.reset();
+    this._history = new History();
 
     var self = this;
     (function(){
@@ -148,6 +179,9 @@ Effecter.prototype = {
   set height(value){
     this.el.height = value;
   },
+  get history(){
+    return this._history;
+  },
   get offsetX(){
     return this._offsetX;
   },
@@ -177,6 +211,7 @@ Effecter.prototype = {
   },
   set photo(value){
     this._photo = value;
+    this.reset();
     this.updateScaleByPhotoSize();
     this.updatePreview();
   },
@@ -222,6 +257,13 @@ Effecter.prototype = {
       }
     });
   },
+  apply: function(filter){
+    if(this.photo != null && typeof filter == "function" && !this.history.contains(filter)){
+      var data = filter(this.ctx.getImageData(0, 0, this.width, this.height));
+      this.ctx.putImageData(data, 0, 0);
+      this.history.add(filter);
+    }
+  },
   updatePreview: function(){
     if(this.photo != null){
       var source = this.sourceArea;
@@ -248,9 +290,39 @@ Effecter.prototype = {
     this.scale = 1;
     this.offsetX = 0;
     this.offsetY = 0;
+    this.history.empty();
   }
 };
-var effecter;
+
+function average(data){
+  var sum = 0;
+  for(var i = 0; i < data.length; i++){
+    sum = sum + data[i];
+  }
+  return sum / data.length;
+}
+
+function grayscale(src){
+  for(var i = 0; i < src.data.length; i = i + 4){
+    var value = average([src.data[i], src.data[i + 1], src.data[i + 2]]);
+
+    src.data[i] = value;
+    src.data[i + 1] = value;
+    src.data[i + 2] = value;
+    src.data[i + 3] = src.data[i + 3];
+  }
+  return src;
+}
+
+function mosaic(ctx, width, height){
+  var size = 32;
+  for(var x = 0; x < width; x += size){
+    for(var y = 0; y < height; y += size){
+      var data = ctx.getImageData(x, y, size, size);
+    }
+  }
+};
+
 window.addEventListener("load", function(){
   var app = new StateMachine();
   app.route = function(hash){
@@ -260,7 +332,7 @@ window.addEventListener("load", function(){
     this.state = hash;
   };
   var canvas = document.querySelector("canvas");
-  effecter = new Effecter(canvas,
+  var effecter = new Effecter(canvas,
                               1024, 1024);
 
   app.addEventListener("pick-photo", function(){
@@ -284,6 +356,13 @@ window.addEventListener("load", function(){
     }
   });
 
+  app.addEventListener("apply-mosaic", function(){
+    effecter.apply(mosaic);
+  });
+
+  app.addEventListener("apply-grayscale", function(){
+    effecter.apply(grayscale);
+  });
 
   document.querySelector("[data-role=pick-photo]").addEventListener("click", function(event){
     event.preventDefault();
@@ -292,6 +371,21 @@ window.addEventListener("load", function(){
   document.querySelector("[data-role=save-photo]").addEventListener("click", function(event){
     event.preventDefault();
     app.state = "save-photo";
+  });
+
+  document.querySelector("[data-role=apply-mosaic]").addEventListener("click", function(event){
+    event.preventDefault();
+    app.state = "apply-mosaic";
+  });
+
+  document.querySelector("[data-role=apply-grayscale]").addEventListener("click", function(event){
+    event.preventDefault();
+    app.state = "apply-grayscale";
+  });
+
+  document.querySelector("[data-role=apply-toycamera]").addEventListener("click", function(event){
+    event.preventDefault();
+    app.state = "apply-toycamera";
   });
 
   window.location.watch("hash", function(prop, oldValue, newValue){
