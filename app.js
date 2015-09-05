@@ -373,6 +373,18 @@ function mosaic(buffer){
   }
 };
 
+function sepia(buffer){
+  var src = buffer.getImageData(0, 0, buffer.width, buffer.height);
+  for(var i = 0; i < src.data.length; i = i + 4){
+    src.data[i] = src.data[i] * 240 / 255;
+    src.data[i + 1] = src.data[i + 1] * 200 / 255;
+    src.data[i + 2] = src.data[i + 2] * 148 / 255;
+    src.data[i + 3] = src.data[i + 3];
+  }
+  buffer.putImageData(src, 0, 0);
+  return buffer;
+}
+
 var effecter;
 
 window.addEventListener("load", function(){
@@ -415,6 +427,9 @@ window.addEventListener("load", function(){
   app.addEventListener("apply-grayscale", function(){
     effecter.apply(grayscale);
   });
+  app.addEventListener("apply-sepia", function(){
+    effecter.apply(sepia);
+  });
 
   document.querySelector("[data-role=pick-photo]").addEventListener("click", function(event){
     event.preventDefault();
@@ -435,9 +450,9 @@ window.addEventListener("load", function(){
     app.state = "apply-grayscale";
   });
 
-  document.querySelector("[data-role=apply-toycamera]").addEventListener("click", function(event){
+  document.querySelector("[data-role=apply-sepia]").addEventListener("click", function(event){
     event.preventDefault();
-    app.state = "apply-toycamera";
+    app.state = "apply-sepia";
   });
 
   window.location.watch("hash", function(prop, oldValue, newValue){
