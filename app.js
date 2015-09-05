@@ -26,15 +26,31 @@ StateMachine.prototype = {
       }
     }
   },
+  /**
+   * state 属性のゲッターメソッド
+   * @return {String} 状態
+   */
   get state(){
     return _state;
   },
+  /**
+   * 状態が変化した際に呼ばれるイベントハンドラの設定メソッド
+   * @param  {String}   stateName 状態の名前
+   * @param  {Function} callback  イベントハンドラ
+   * @return {null}
+   */
   addEventListener: function(stateName, callback){
     if(this._callbacks[stateName] == null){
       this._callbacks[stateName] = [];
     }
     this._callbacks[stateName].push(callback);
   },
+  /**
+   * イベントハンドラの削除用関数
+   * @param  {String}   stateName 状態の名前
+   * @param  {Function} callback  削除するイベントハンドラ
+   * @return {null}
+   */
   removeEventListener: function(stateName, callback){
     var list = this._callbacks[stateName];
     if(list !== null){
@@ -46,6 +62,10 @@ StateMachine.prototype = {
   }
 };
 
+/**
+ * 画像を選択する関数
+ * @return {Promise} 選択を行うPromiseオブジェクト
+ */
 function pickPhoto(){
   return new Promise(function(resolve, reject){
     var req = new MozActivity({
@@ -68,9 +88,14 @@ function pickPhoto(){
   });
 }
 
+// DeviceStorageオブジェクトに、メソッドを追加する
 var storage = (function(){
   var storage = navigator.getDeviceStorage("pictures");
   if(storage != null){
+    /**
+     * 時間から写真のファイル名を作成する関数
+     * @return {String} ファイル名
+     */
     storage.createFileName = function(){
       var now = new Date();
       return "photo-" + (1900 + now.getYear()) + "-" +
@@ -79,6 +104,11 @@ var storage = (function(){
         ("00" + now.getHours()).substr(-2) +
         ("00" + now.getMinutes()).substr(-2) + ".jpg";
     };
+    /**
+     * 写真を保存するメソッド
+     * @param  {Blob} blob 写真のBlob
+     * @return {Promise}   写真の保存を行うPromiseオブジェクト
+     */
     storage.savePhoto = function(blob){
       var self = this;
       return new Promise(function(resolve, reject){
@@ -95,14 +125,23 @@ var storage = (function(){
   return storage;;
 })();
 
+// 2次元平面上の点を表したオブジェクト
 var Point = function(x, y){
   this.x = x;
   this.y = y;
 }
+/**
+ * タッチオブジェクトからPointオブジェクトを作成するファクトリメソッド
+ * @param  {Touch} touch タッチされた点
+ * @return {Point}       タッチされた点
+ */
 Point.createFromTouch = function(touch){
   return new Point(touch.clientX, touch.clientY);
 };
 
+/**
+ * フィルタ処理の対象となるバッファを表したオブジェクト
+ */
 var GraphicBuffer = function(){
   this.initialize.apply(this, arguments);
 }
@@ -144,6 +183,9 @@ GraphicBuffer.prototype = {
   }
 };
 
+/**
+ * フィルタ処理のUIを担当するオブジェクト
+ */
 var Effecter = function(){
   this.initialize.apply(this, arguments);
 }
@@ -305,6 +347,11 @@ Effecter.prototype = {
   }
 };
 
+/**
+ * 平均を求める関数
+ * @param  {Array} data データ群
+ * @return {Number}     平均値
+ */
 function average(data){
   var sum = 0;
   for(var i = 0; i < data.length; i++){
@@ -313,6 +360,11 @@ function average(data){
   return sum / data.length;
 }
 
+/**
+ * グレースケールを実現するフィルタ
+ * @param  {GraphicBuffer} buffer フィルタを適用するGraphicBuffer
+ * @return {GraphicBuffer}        適用後のGraphicBuffer
+ */
 function grayscale(buffer){
   var src = buffer.getImageData(0, 0, buffer.width, buffer.height);
   for(var i = 0; i < src.data.length; i = i + 4){
@@ -327,6 +379,11 @@ function grayscale(buffer){
   return buffer;
 }
 
+/**
+ * モザイク処理を実現するフィルタ
+ * @param  {GraphicBuffer} buffer フィルタを適用するGraphicBuffer
+ * @return {GraphicBuffer}        適用後のGraphicBuffer
+ */
 function mosaic(buffer){
   var size = 64;
   var pixels = size * size;
@@ -350,6 +407,11 @@ function mosaic(buffer){
   }
 };
 
+/**
+ * 色調をセピアに変更するフィルタ
+ * @param  {GraphicBuffer} buffer フィルタを適用するGraphicBuffer
+ * @return {GraphicBuffer}        適用後のGraphicBuffer
+ */
 function sepia(buffer){
   var src = buffer.getImageData(0, 0, buffer.width, buffer.height);
   for(var i = 0; i < src.data.length; i = i + 4){
@@ -376,6 +438,7 @@ window.addEventListener("load", function(){
   effecter = new Effecter(canvas,
                               1024, 1024);
 
+// アプリの状態変化に対応した処理の設定
   app.addEventListener("pick-photo", function(){
     pickPhoto().then(function(photo){
       effecter.photo = photo;
@@ -408,6 +471,7 @@ window.addEventListener("load", function(){
     effecter.apply(sepia);
   });
 
+// UI パーツに対する操作のハンドラ設定。ここではアプリの状態を変化させるにとどまる
   document.querySelector("[data-role=pick-photo]").addEventListener("click", function(event){
     event.preventDefault();
     app.state = "pick-photo";
@@ -432,6 +496,7 @@ window.addEventListener("load", function(){
     app.state = "apply-sepia";
   });
 
+// Location オブジェクトの変化に合わせて、アプリの状態を変化させる。リンクの処理
   window.location.watch("hash", function(prop, oldValue, newValue){
     app.route(newValue);
   });
